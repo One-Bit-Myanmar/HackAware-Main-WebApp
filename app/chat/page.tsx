@@ -1,30 +1,32 @@
-"use client"
+"use client";
 
-import { useState, useRef, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Shield, Send, ImageIcon, LinkIcon, ArrowLeft } from "lucide-react"
-import Link from "next/link"
-import { ChatMessage } from "@/components/chat-message"
-import { ChatTypingIndicator } from "@/components/chat-typing-indicator"
+import { useState, useRef, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Shield, Send, ImageIcon, LinkIcon, ArrowLeft } from "lucide-react";
+import Link from "next/link";
+import { ChatMessage } from "@/components/chat-message";
+import { ChatTypingIndicator } from "@/components/chat-typing-indicator";
+import axios from "axios";
 
 type MessageType = {
-  id: string
-  role: "user" | "bot"
-  content: string
-  timestamp: Date
-  icon?: string
-  status?: "normal" | "warning" | "danger" | "success"
-}
+  id: string;
+  role: "user" | "bot";
+  content: string;
+  timestamp: Date;
+  icon?: string;
+  status?: "normal" | "warning" | "danger" | "success";
+};
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<MessageType[]>([
     {
       id: "welcome",
       role: "bot",
-      content: "Hello! I'm HackAware, your AI cybersecurity assistant. How can I help protect your digital life today?",
+      content:
+        "Hello! I'm HackAware, your AI cybersecurity assistant. How can I help protect your digital life today?",
       timestamp: new Date(),
     },
     {
@@ -35,75 +37,75 @@ export default function ChatPage() {
       timestamp: new Date(),
       icon: "🛡️",
     },
-  ])
+  ]);
 
-  const [input, setInput] = useState("")
-  const [isTyping, setIsTyping] = useState(false)
-  const [activeTab, setActiveTab] = useState("text")
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [input, setInput] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const [activeTab, setActiveTab] = useState("text");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   useEffect(() => {
-    scrollToBottom()
-  }, [messages])
+    scrollToBottom();
+  }, [messages]);
 
-  const handleSendMessage = () => {
-    if (!input.trim()) return
+  const handleSendMessage = async () => {
+    if (!input.trim()) return;
 
-    // Add user message
+    // Add user message to UI right away
     const userMessage: MessageType = {
       id: Date.now().toString(),
       role: "user",
       content: input,
       timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, userMessage]);
+    setInput("");
+    setIsTyping(true);
+
+    const API_URL = process.env.NEXT_PUBLIC_API_URL; // Ensure your API key set in .env file
+
+    try {
+      const response = await axios.post(
+        `${API_URL}/chat/local/`,
+        {
+          question: input, // Request body
+        },
+        {
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      let aiText = response.data?.response || "";
+
+      // Remove <think> ... </think>
+      aiText = aiText.replace(/<think>[\s\S]*?<\/think>/, "").trim();
+
+      console.log("Trimmed AI Response:", aiText);
+
+      const botMessage: MessageType = {
+        id: (Date.now() + 1).toString(),
+        role: "bot",
+        content: aiText || "No response from AI",
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev, botMessage]);
+    } catch (error: any) {
+      console.error(
+        "Error fetching response:",
+        error?.response?.data || error.message
+      );
+    } finally {
+      setIsTyping(false);
     }
-
-    setMessages((prev) => [...prev, userMessage])
-    setInput("")
-    setIsTyping(true)
-
-    // Simulate bot response after a delay
-    setTimeout(() => {
-      let botResponse: MessageType
-
-      // Simple response logic based on user input
-      if (input.toLowerCase().includes("phishing") || input.toLowerCase().includes("suspicious")) {
-        botResponse = {
-          id: (Date.now() + 1).toString(),
-          role: "bot",
-          content:
-            "Phishing attempts often try to create urgency or fear to make you act quickly without thinking. Always verify the sender's email address and hover over links before clicking them.",
-          timestamp: new Date(),
-          icon: "🚨",
-          status: "warning",
-        }
-      } else if (input.toLowerCase().includes("password") || input.toLowerCase().includes("secure")) {
-        botResponse = {
-          id: (Date.now() + 1).toString(),
-          role: "bot",
-          content:
-            "Strong passwords should be at least 12 characters long and include a mix of uppercase letters, lowercase letters, numbers, and special characters. Consider using a password manager to generate and store unique passwords for each account.",
-          timestamp: new Date(),
-          icon: "🔒",
-          status: "success",
-        }
-      } else {
-        botResponse = {
-          id: (Date.now() + 1).toString(),
-          role: "bot",
-          content:
-            "I'm here to help with your cybersecurity questions. Could you provide more details about your concern so I can give you specific guidance?",
-          timestamp: new Date(),
-        }
-      }
-
-      setMessages((prev) => [...prev, botResponse])
-      setIsTyping(false)
-    }, 1500)
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-950 flex flex-col">
@@ -131,7 +133,11 @@ export default function ChatPage() {
         </div>
 
         <div className="p-4 border-t border-gray-800">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-full"
+          >
             <TabsList className="mb-4">
               <TabsTrigger value="text">Text</TabsTrigger>
               <TabsTrigger value="image">Image</TabsTrigger>
@@ -147,12 +153,16 @@ export default function ChatPage() {
                   className="min-h-[60px] bg-gray-800/50 border-gray-700 focus-visible:ring-cyan-500"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault()
-                      handleSendMessage()
+                      e.preventDefault();
+                      handleSendMessage();
                     }
                   }}
                 />
-                <Button onClick={handleSendMessage} size="icon" className="bg-cyan-500 hover:bg-cyan-600 h-auto">
+                <Button
+                  onClick={handleSendMessage}
+                  size="icon"
+                  className="bg-cyan-500 hover:bg-cyan-600 h-auto"
+                >
                   <Send className="h-5 w-5" />
                 </Button>
               </div>
@@ -164,10 +174,16 @@ export default function ChatPage() {
                   <div className="flex justify-center mb-4">
                     <ImageIcon className="h-10 w-10 text-gray-400" />
                   </div>
-                  <p className="text-gray-400 mb-2">Upload or drag and drop an image</p>
-                  <p className="text-xs text-gray-500">Supported formats: JPG, PNG, PDF</p>
+                  <p className="text-gray-400 mb-2">
+                    Upload or drag and drop an image
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Supported formats: JPG, PNG, PDF
+                  </p>
                 </div>
-                <Button className="w-full bg-cyan-500 hover:bg-cyan-600">Analyze Image</Button>
+                <Button className="w-full bg-cyan-500 hover:bg-cyan-600">
+                  Analyze Image
+                </Button>
               </div>
             </TabsContent>
 
@@ -181,10 +197,13 @@ export default function ChatPage() {
                       className="pl-10 bg-gray-800/50 border-gray-700 focus-visible:ring-cyan-500"
                     />
                   </div>
-                  <Button className="bg-cyan-500 hover:bg-cyan-600">Check Link</Button>
+                  <Button className="bg-cyan-500 hover:bg-cyan-600">
+                    Check Link
+                  </Button>
                 </div>
                 <p className="text-xs text-gray-400">
-                  HackAware will analyze the link for potential phishing attempts, malware, and other security threats.
+                  HackAware will analyze the link for potential phishing
+                  attempts, malware, and other security threats.
                 </p>
               </div>
             </TabsContent>
@@ -192,5 +211,5 @@ export default function ChatPage() {
         </div>
       </main>
     </div>
-  )
+  );
 }
