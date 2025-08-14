@@ -46,16 +46,16 @@ export default function Home() {
             link="/chat"
           />
           <FeatureCard
-            icon={<BookOpen className="h-8 w-8 text-cyan-500" />}
-            title="Teach Me Mode"
-            description="Learn cybersecurity through interactive lessons and quizzes"
-            link="/teach"
-          />
-          <FeatureCard
             icon={<FileSearch className="h-8 w-8 text-cyan-500" />}
             title="Privacy Analyzer"
             description="Scan apps and websites to identify potential privacy risks"
             link="/analyzer"
+          />
+          <FeatureCard
+            icon={<BookOpen className="h-8 w-8 text-cyan-500" />}
+            title="Teach Me Mode"
+            description="Learn cybersecurity through interactive lessons and quizzes"
+            link="/teach"
           />
           <FeatureCard
             icon={<AlertTriangle className="h-8 w-8 text-cyan-500" />}
